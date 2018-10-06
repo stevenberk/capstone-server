@@ -2,9 +2,9 @@ const express = require('express');
 const app = express();
 const bodyParser = require('body-parser')
 const jwt = require('jsonwebtoken');
-const signature = 
 
-//CORS stuff
+
+//COORS stuff
 let allowCORS = (req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS");
@@ -105,7 +105,7 @@ if(payload){
 }else{
   res.sendStatus(403)
 }
-  console.log(payload);
+  // console.log(payload);
   
 })
 
@@ -113,12 +113,10 @@ if(payload){
 
 let users = [
   { 
-  userId: 1,
   email: 'steven@email.com',
   password: 'password'
   },
   {
-  userId: 2,
   email: 'user@email.com',
   password: 'password2'
   }
@@ -126,6 +124,7 @@ let users = [
 //add new user
 app.post('/addnewuser', (req, res) =>{
   users.push({email:req.body.email, password:req.body.password})
+
 })
 
 //login page does a post request here
@@ -140,6 +139,7 @@ app.post("/api/login", (req, res) => {
 }else {
   res.send(404, "str")
 }
+console.log(users);
 });
  
 function verifyToken(req, res, next){
@@ -157,3 +157,16 @@ function verifyToken(req, res, next){
 app.listen(3006)
 
 
+
+// app.post('/api/posts', verifyToken,  (req, res) => {
+//   jwt.verify(req.token, signature, (err, authData)=> {
+//       if(err){
+//         res.sendStatus(403);
+//       }else{
+//         res.json({
+//           message: "credentials OK",
+//           authData
+//         });
+//       }
+//   })
+// });
