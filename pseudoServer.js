@@ -3,6 +3,8 @@ const app = express();
 const bodyParser = require('body-parser')
 const jwt = require('jsonwebtoken');
 
+const pg = require('pg');
+
 
 //COORS stuff
 let allowCORS = (req, res, next) => {
@@ -21,7 +23,7 @@ app.use(bodyParser.urlencoded({
 //dummy data
 let sellerSubmissions = [
   {
-    
+    'postid' : 0,
     'amount': 50, 
     'currency': "CAD",
     'location':"Atlanta",
@@ -30,16 +32,7 @@ let sellerSubmissions = [
     'valueInUSD': 33.72
   },
   {
-   
-    'amount': 34,
-    'currency': "USD",
-    'location': "Los Angeles",
-    'notes': "hi",
-    'sellerEmail': "user@email.com",
-    'valueInUSD': 39.13
-  },
-  {
-    
+    'postid' : 2,
     'amount': 100,
     'currency': "GBP",
     'location': "Boston",
@@ -113,10 +106,14 @@ if(payload){
 
 let users = [
   { 
+  userid: 1,
+  name: 'steven',
   email: 'steven@email.com',
   password: 'password'
   },
   {
+  userid: 2,
+  name: 'user',
   email: 'user@email.com',
   password: 'password2'
   }
@@ -156,17 +153,3 @@ function verifyToken(req, res, next){
 
 app.listen(3006)
 
-
-
-// app.post('/api/posts', verifyToken,  (req, res) => {
-//   jwt.verify(req.token, signature, (err, authData)=> {
-//       if(err){
-//         res.sendStatus(403);
-//       }else{
-//         res.json({
-//           message: "credentials OK",
-//           authData
-//         });
-//       }
-//   })
-// });
