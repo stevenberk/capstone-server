@@ -23,13 +23,16 @@ app.use(bodyParser.urlencoded({
 //dummy data
 let sellerSubmissions = [
   {
-    'postid' : 0,
+    'postid' : 1,
     'amount': 50, 
     'currency': "CAD",
     'location':"Atlanta",
     'notes': "yes",
-    'sellerEmail': "steven@email.com",
-    'valueInUSD': 33.72
+    'valueInUSD': 33.72,
+    'selleremail': "steven@email.com",
+    'sellername': 'steven'
+    
+   
   },
   {
     'postid' : 2,
@@ -37,8 +40,9 @@ let sellerSubmissions = [
     'currency': "GBP",
     'location': "Boston",
     'notes': "hello",
-    'sellerEmail': "Unicorn@Glitter.com",
-    'valueInUSD': 112.94
+    'valueInUSD': 112.94,
+    'selleremail': "user@email.com",
+    'sellername': 'user'
   }
 ];
 
@@ -81,6 +85,7 @@ app.post("/submissions", verifyToken, (req, res)=> {
   }
 if(payload){
   sellerSubmissions.push(req.body);
+  console.log(sellerSubmissions);
   res.end();
 }else{
   res.send(404, "str")
@@ -107,36 +112,42 @@ if(payload){
 let users = [
   { 
   userid: 1,
-  name: 'steven',
+  firstname: 'Steven',
+  lastname: 'lastname',
   email: 'steven@email.com',
   password: 'password'
   },
   {
   userid: 2,
-  name: 'user',
+  firstname: 'user',
+  lastname: 'lastname',
   email: 'user@email.com',
   password: 'password2'
   }
 ]
+
+let makeNewUserID = () =>{
+  return users.length + 1
+}
 //add new user
 app.post('/addnewuser', (req, res) =>{
-  users.push({email:req.body.email, password:req.body.password})
-
+  users.push({userid:makeNewUserID(), firstname:req.body.firstname, lastname:req.body.lastname , email:req.body.email, password:req.body.password})
+  console.log(users);
 })
 
 //login page does a post request here
 app.post("/api/login", (req, res) => {
   let user = users.find(user =>(req.body.email === user.email))
   if (req.body.email === user.email && req.body.password === user.password){
-  jwt.sign({email: user.email}, signature, {expiresIn: '2 days'}, (err, token)=> {
+  jwt.sign({email: user.email, firstname: user.firstname, lastname: user.firstname, userid: user.userid}, signature, {expiresIn: '2 days'}, (err, token)=> {
     res.json({
-      token
+      token, email: user.email, firstname: user.firstname, lastname: user.firstname, userid: user.userid
     });
   });
 }else {
   res.send(404, "str")
 }
-console.log(users);
+
 });
  
 function verifyToken(req, res, next){
@@ -152,4 +163,3 @@ function verifyToken(req, res, next){
 }
 
 app.listen(3006)
-
