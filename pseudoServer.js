@@ -24,88 +24,69 @@ const dbConfig = {
   database: 'capstone',
   user: 'stevenberk'
 };
+
 const db = pg(dbConfig);
 
 //most pages use isloggedin to test for auth
 app.get("/isloggedin", verifyToken, (req, res)=> {
   let payload ;
   try{
-     payload = jwt.verify(req.token, signature)
+   payload = jwt.verify(req.token, signature)
   }catch(error){ 
-  }
-if(payload){
-  res.send("yes")
-}else{
-  res.send("not logged in")
-}  
+    }
+  if(payload){
+    res.send("yes")
+  }else{
+    res.send("not logged in")
+    }   
 })
 
-
-
-//seller submissions - REFACTORED IN POSTGRES
+//seller submissions 
 app.post("/sellersubmissions", (req, res)=> {
   db.query(`INSERT INTO posts (amount,currency,location,notes,valueinusd,selleremail,sellername,sellerid) VALUES
-  ('${req.body.amount}','${req.body.currency}','${req.body.location}','${req.body.notes}','${req.body.valueInUSD}','${req.body.sellerEmail}','${req.body.sellername}','${req.body.sellerid}') RETURNING postid;`)
+  ('${req.body.amount}','${req.body.currency}','${req.body.location}','${req.body.notes}','${req.body.valueinusd}','${req.body.selleremail}','${req.body.sellername}','${req.body.sellerid}') RETURNING postid;`)
   .then(()=> res.send("ok"))
 })
 
-//used to seed state in login page - REFACTORED FOR POSTGRES
+//used to seed state in login page 
 app.post('/seedaccountpage', (req, res) =>{
   db.query(`SELECT * FROM posts WHERE selleremail = '${req.body.email}';`)
   .then((results) => {
     res.send(JSON.stringify(results))}
-)
+  )
 })
 
-// buyer page search querries - REFACTORED FOR POSTGRES
+// buyer page search querries 
 app.post("/querysubmissions", (req, res) => {
   db.query(`SELECT * FROM posts  WHERE location = '${req.body.location}'  AND currency = '${req.body.currency}';`)
   .then((results) => {
     res.send(JSON.stringify(results))}
-)
+  )
 })
 
-//add new user from signup page - REFACTORED FOR POSTGRES
+//add new user from signup page 
 app.post('/createuser', (req, res) => {
   db.query(`INSERT INTO users (firstname,lastname,email,password) VALUES
   ('${req.body.firstname}','${req.body.lastname}','${req.body.email}','${req.body.password}') RETURNING id;`)
   .then(()=> res.send("ok"))
 }) 
 
+//delete a posting
+app.post('/deletepost', (req, res) =>{
+  db.query(`DELETE FROM posts WHERE postid ='${req.body.id}' ;`)
+  .then(()=>res.send("deleted"))
+})
+
 //// Auth 
-
-//cannot remove this users array until the login page is refactore for postgres
-let users = [
-  { 
-  userid: 1,
-  firstname: 'Steven',
-  lastname: 'lastname',
-  email: 'steven@email.com',
-  password: 'password'
-  },
-  {
-  userid: 2,
-  firstname: 'user',
-  lastname: 'lastname',
-  email: 'user@email.com',
-  password: 'password2'
-  }
-]
-
-
-//login page does a post request here, needs to be redone for postgres
-app.post("/api/login", (req, res) => {
-  let user = users.find(user =>(req.body.email === user.email))
-  if (req.body.email === user.email && req.body.password === user.password){
-  jwt.sign({email: user.email, firstname: user.firstname, lastname: user.firstname, userid: user.userid}, signature, {expiresIn: '2 days'}, (err, token)=> {
+app.post("/querylogin", (req, res) => {
+  db.one(`SELECT id, firstname, lastname, email, password FROM users WHERE email = '${req.body.email}' AND password = '${req.body.password}';`)
+  .then((user)=> { 
+  jwt.sign({email: user.email, firstname: user.firstname, lastname: user.firstname, userid: user.id}, signature, {expiresIn: '2 days'}, (err, token)=> {
     res.json({
-      token, email: user.email, firstname: user.firstname, lastname: user.firstname, userid: user.userid
+      token, email: user.email, firstname: user.firstname, lastname: user.firstname, userid: user.id
+      });
     });
-  });
-}else {
-  res.send(404, "str")
-}
-
+  })
 });
  
 function verifyToken(req, res, next){
