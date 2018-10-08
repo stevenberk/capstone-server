@@ -3,8 +3,7 @@ const app = express();
 const bodyParser = require('body-parser')
 const jwt = require('jsonwebtoken');
 
-const pg = require('pg');
-
+const pg = require('pg-promise')();
 
 //COORS stuff
 let allowCORS = (req, res, next) => {
@@ -19,45 +18,15 @@ app.use(bodyParser.urlencoded({
   extended: true
 }));
 
+const dbConfig = {
+  host: 'localhost',
+  port: 5432,
+  database: 'capstone',
+  user: 'stevenberk'
+};
+const db = pg(dbConfig);
 
-//dummy data
-let sellerSubmissions = [
-  {
-    'postid' : 1,
-    'amount': 50, 
-    'currency': "CAD",
-    'location':"Atlanta",
-    'notes': "yes",
-    'valueInUSD': 33.72,
-    'selleremail': "steven@email.com",
-    'sellername': 'steven'
-    
-   
-  },
-  {
-    'postid' : 2,
-    'amount': 100,
-    'currency': "GBP",
-    'location': "Boston",
-    'notes': "hello",
-    'valueInUSD': 112.94,
-    'selleremail': "user@email.com",
-    'sellername': 'user'
-  }
-];
-
-
-app.get('/tester', (req, res)=>{
-  res.send("from server, with love");
-})
-
-//seller submissions and buyer searches
-
-// app.post("/submissions", (req, res)=>{
-  // sellerSubmissions.push(req.body);
-  // res.end();
-// })
-
+//most pages use isloggedin to test for auth
 app.get("/isloggedin", verifyToken, (req, res)=> {
   let payload ;
   try{
@@ -73,42 +42,39 @@ if(payload){
 
 
 
-app.get("/posts", (req, res)=>{
-  res.send(sellerSubmissions);
+//seller submissions - REFACTORED IN POSTGRES
+app.post("/sellersubmissions", (req, res)=> {
+  db.query(`INSERT INTO posts (amount,currency,location,notes,valueinusd,selleremail,sellername,sellerid) VALUES
+  ('${req.body.amount}','${req.body.currency}','${req.body.location}','${req.body.notes}','${req.body.valueInUSD}','${req.body.sellerEmail}','${req.body.sellername}','${req.body.sellerid}') RETURNING postid;`)
+  .then(()=> res.send("ok"))
 })
 
-app.post("/submissions", verifyToken, (req, res)=> {
-  let payload ;
-  try{
-     payload = jwt.verify(req.token, signature)
-  }catch(error){ 
-  }
-if(payload){
-  sellerSubmissions.push(req.body);
-  console.log(sellerSubmissions);
-  res.end();
-}else{
-  res.send(404, "str")
-} 
+//used to seed state in login page - REFACTORED FOR POSTGRES
+app.post('/seedaccountpage', (req, res) =>{
+  db.query(`SELECT * FROM posts WHERE selleremail = '${req.body.email}';`)
+  .then((results) => {
+    res.send(JSON.stringify(results))}
+)
 })
 
-app.get('/submissions',  verifyToken, (req, res)=> {
-  let payload ;
-  try{
-     payload = jwt.verify(req.token, signature)
-  }catch(error){ 
-  }
-if(payload){
-  res.send(sellerSubmissions);
-}else{
-  res.sendStatus(403)
-}
-  // console.log(payload);
-  
+// buyer page search querries - REFACTORED FOR POSTGRES
+app.post("/querysubmissions", (req, res) => {
+  db.query(`SELECT * FROM posts  WHERE location = '${req.body.location}'  AND currency = '${req.body.currency}';`)
+  .then((results) => {
+    res.send(JSON.stringify(results))}
+)
 })
+
+//add new user from signup page - REFACTORED FOR POSTGRES
+app.post('/createuser', (req, res) => {
+  db.query(`INSERT INTO users (firstname,lastname,email,password) VALUES
+  ('${req.body.firstname}','${req.body.lastname}','${req.body.email}','${req.body.password}') RETURNING id;`)
+  .then(()=> res.send("ok"))
+}) 
 
 //// Auth 
 
+//cannot remove this users array until the login page is refactore for postgres
 let users = [
   { 
   userid: 1,
@@ -126,16 +92,8 @@ let users = [
   }
 ]
 
-let makeNewUserID = () =>{
-  return users.length + 1
-}
-//add new user
-app.post('/addnewuser', (req, res) =>{
-  users.push({userid:makeNewUserID(), firstname:req.body.firstname, lastname:req.body.lastname , email:req.body.email, password:req.body.password})
-  console.log(users);
-})
 
-//login page does a post request here
+//login page does a post request here, needs to be redone for postgres
 app.post("/api/login", (req, res) => {
   let user = users.find(user =>(req.body.email === user.email))
   if (req.body.email === user.email && req.body.password === user.password){
