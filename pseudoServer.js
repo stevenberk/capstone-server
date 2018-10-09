@@ -4,6 +4,8 @@ const bodyParser = require('body-parser')
 const jwt = require('jsonwebtoken');
 
 const pg = require('pg-promise')();
+const bcrypt = require('bcrypt');
+
 
 //COORS stuff
 let allowCORS = (req, res, next) => {
@@ -43,8 +45,8 @@ app.get("/isloggedin", verifyToken, (req, res)=> {
 
 //seller submissions 
 app.post("/sellersubmissions", (req, res)=> {
-  db.query(`INSERT INTO posts (amount,currency,location,notes,valueinusd,selleremail,sellername,sellerid) VALUES
-  ('${req.body.amount}','${req.body.currency}','${req.body.location}','${req.body.notes}','${req.body.valueinusd}','${req.body.selleremail}','${req.body.sellername}','${req.body.sellerid}') RETURNING postid;`)
+  db.query(`INSERT INTO posts (amount,currency,location,valueinusd,selleremail,sellername,sellerid) VALUES
+  ('${req.body.amount}','${req.body.currency}','${req.body.location}','${req.body.valueinusd}','${req.body.selleremail}','${req.body.sellername}','${req.body.sellerid}') RETURNING postid;`)
   .then(()=> res.send("ok"))
 })
 
@@ -64,29 +66,42 @@ app.post("/querysubmissions", (req, res) => {
   )
 })
 
-//add new user from signup page 
-app.post('/createuser', (req, res) => {
-  db.query(`INSERT INTO users (firstname,lastname,email,password) VALUES
-  ('${req.body.firstname}','${req.body.lastname}','${req.body.email}','${req.body.password}') RETURNING id;`)
-  .then(()=> res.send("ok"))
-}) 
 
 //delete a posting
 app.post('/deletepost', (req, res) =>{
   db.query(`DELETE FROM posts WHERE postid ='${req.body.id}' ;`)
-  .then(()=>res.send("deleted"))
+    .then(()=>res.send("deleted"))
 })
 
-//// Auth 
+//add new user from signup page 
+app.post('/createuser', (req, res) => {
+  bcrypt.hash(req.body.password, saltRounds)
+   .then(function(hashedpassword) {
+   db.query(`INSERT INTO users (firstname,lastname,email,password) VALUES
+   ('${req.body.firstname}','${req.body.lastname}','${req.body.email}','${hashedpassword}') RETURNING id;`)
+   .then(()=> res.send("ok"))
+ })
+ }) 
+ 
+
+//// Login Auth 
 app.post("/querylogin", (req, res) => {
-  db.one(`SELECT id, firstname, lastname, email, password FROM users WHERE email = '${req.body.email}' AND password = '${req.body.password}';`)
-  .then((user)=> { 
-  jwt.sign({email: user.email, firstname: user.firstname, lastname: user.firstname, userid: user.id}, signature, {expiresIn: '2 days'}, (err, token)=> {
-    res.json({
-      token, email: user.email, firstname: user.firstname, lastname: user.firstname, userid: user.id
-      });
-    });
-  })
+  db.one(`SELECT password FROM users WHERE email = '${req.body.email}';`).then((password)=>{
+    bcrypt.compare(req.body.password, password.password.trim()).then(function(result) {
+      if(result === true){
+        db.one(`SELECT id, firstname, lastname, email FROM users WHERE email = '${req.body.email}' AND password = '${password.password}';`)
+        .then((user)=> { 
+          jwt.sign({email: user.email, firstname: user.firstname, lastname: user.firstname, userid: user.id}, signature, {expiresIn: '2 days'}, (err, token)=> {
+            res.json({
+                token, email: user.email, firstname: user.firstname, lastname: user.firstname, userid: user.id
+          });
+        });
+      })
+      }else{
+        console.log("no dice beans and rice")
+      }
+    })
+  })  
 });
  
 function verifyToken(req, res, next){
