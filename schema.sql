@@ -31,7 +31,7 @@ CREATE TABLE users (
     firstname character varying(200) NOT NULL,
     lastname character varying(200) NOT NULL,
     email character varying(255) NOT NULL UNIQUE,
-    password character(255) NOT NULL
+    password character varying(255) NOT NULL
 );
 
 -- Indices -------------------------------------------------------

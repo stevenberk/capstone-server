@@ -2,10 +2,10 @@ const express = require('express');
 const app = express();
 const bodyParser = require('body-parser')
 const jwt = require('jsonwebtoken');
-
+//signature removed from commit
 const pg = require('pg-promise')();
 const bcrypt = require('bcrypt');
-
+//saltRounds removed from commit
 
 //COORS stuff
 let allowCORS = (req, res, next) => {
@@ -87,7 +87,7 @@ app.post('/createuser', (req, res) => {
 //// Login Auth 
 app.post("/querylogin", (req, res) => {
   db.one(`SELECT password FROM users WHERE email = '${req.body.email}';`).then((password)=>{
-    bcrypt.compare(req.body.password, password.password.trim()).then(function(result) {
+    bcrypt.compare(req.body.password, password.password).then(function(result) {
       if(result === true){
         db.one(`SELECT id, firstname, lastname, email FROM users WHERE email = '${req.body.email}' AND password = '${password.password}';`)
         .then((user)=> { 
